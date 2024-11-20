@@ -13,6 +13,34 @@ SNS_TOPIC_ARN = os.environ.get("SNS_TOPIC_ARN")
 EC2_INSTANCE_IDS = os.environ.get("EC2_INSTANCE_IDS").split(',')
 TEAMS_WEBHOOK_URL = os.environ.get("TEAMS_WEBHOOK_URL")
 
+def send_error_notification(failed_instances: List[str]) -> None:
+    """
+    Sends an SNS notification if there are any failed EC2 instance operations.
+
+    Parameters:
+    - failed_instances (List[str]): A list of EC2 instance IDs that failed to stop/start.
+
+    Returns:
+    None
+    """
+    if not failed_instances:
+        return  # No failures, so no need to send an email
+    
+    error_message = (
+        "The following EC2 instances failed to stop or start:\n" +
+        "\n".join(failed_instances)
+    )
+    
+    try:
+        sns_client.publish(
+            TopicArn=SNS_TOPIC_ARN,
+            Subject="EC2 Instance Stop/Start Errors",
+            Message=error_message
+        )
+        print("SNS notification sent successfully")
+    except Exception as sns_error:
+        print(f"Failed to send SNS notification: {sns_error}")
+
 def send_message_to_teams(message: str) -> None:
     """
     Sends a message to a Microsoft Teams channel using an incoming webhook.
@@ -75,55 +103,27 @@ def start_ec2_instance(instance_id: str, failed_instances: List[str]) -> None:
         print(error_message)
         failed_instances.append(instance_id)
 
-def send_error_notification(failed_instances: List[str]) -> None:
-    """
-    Sends an SNS notification if there are any failed EC2 instance operations.
-
-    Parameters:
-    - failed_instances (List[str]): A list of EC2 instance IDs that failed to stop/start.
-
-    Returns:
-    None
-    """
-    if not failed_instances:
-        return  # No failures, so no need to send an email
-    
-    error_message = (
-        "The following EC2 instances failed to stop or start:\n" +
-        "\n".join(failed_instances)
-    )
-    
-    try:
-        sns_client.publish(
-            TopicArn=SNS_TOPIC_ARN,
-            Subject="EC2 Instance Stop/Start Errors",
-            Message=error_message
-        )
-        print("SNS notification sent successfully")
-    except Exception as sns_error:
-        print(f"Failed to send SNS notification: {sns_error}")
-
 def lambda_handler(event, context):
 
-    print(f"Lambda triggered successfully")
+    print(f"Lambda triggered {event}")
     action = event.get('detail', {}).get('action')
 
     try:
         if action == 'start':
-            ec2_client.start_instances(InstanceIds=[EC2_INSTANCE_ID])
-            message = f"EC2 instance {EC2_INSTANCE_ID} started successfully."
+            ec2_client.start_instances(InstanceIds=[EC2_INSTANCE_IDS])
+            message = f"EC2 instance {EC2_INSTANCE_IDS} started successfully."
             print(message)
             send_error_notification("EC2 Start Success", message)
 
         elif action == 'stop':
-            ec2_client.stop_instances(InstanceIds=[EC2_INSTANCE_ID])
-            message = f"EC2 instance {EC2_INSTANCE_ID} stopped successfully."
+            ec2_client.stop_instances(InstanceIds=[EC2_INSTANCE_IDS])
+            message = f"EC2 instance {EC2_INSTANCE_IDS} stopped successfully."
             print(message)
             send_error_notification("EC2 Stop Success", message)
 
         else:
-            print("Unknown action received.")
+            print(f"[INFO]: unknown action received:'{action}'")
     except Exception as e:
-        error_message = f"Error occurred while performing {action} on EC2 instance {EC2_INSTANCE_ID}: {str(e)}"
+        error_message = f"Error occurred while performing {action} on EC2 instance {EC2_INSTANCE_IDS}: {str(e)}"
         print(error_message)
         send_sns_message("EC2 Action Error", error_message)

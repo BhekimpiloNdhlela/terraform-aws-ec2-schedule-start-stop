@@ -1,138 +1,158 @@
-provider "aws" {
-  region = "us-east-1"  # Adjust to your preferred AWS region
+# IAM role for Lambda function
+resource "aws_iam_role" "lambda_execution_role" {
+  name               = "${var.naming_prefix}-lambda-execution-role"
+  assume_role_policy = data.aws_iam_policy_document.lambda_assume_role_policy.json
 }
 
-# IAM Role for Lambda
-resource "aws_iam_role" "lambda_role" {
-  name = "lambda_execution_role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Action = "sts:AssumeRole",
-        Effect = "Allow",
-        Principal = {
-          Service = "lambda.amazonaws.com"
-        }
-      }
-    ]
-  })
-}
-
-# IAM Policy for Lambda
-resource "aws_iam_policy" "lambda_policy" {
-  name = "lambda_execution_policy"
+# IAM policy for Lambda to allow necessary actions
+resource "aws_iam_policy" "lambda_execution_policy" {
+  name        = "${var.naming_prefix}-lambda-execution-policy"
+  description = "IAM policy for Lambda function to manage EC2, SNS, and CloudWatch Logs"
+  
   policy = jsonencode({
-    Version = "2012-10-17",
+    Version = "2012-10-17"
     Statement = [
+      # Allow managing EC2 instances
       {
-        Effect = "Allow",
-        Action = [
+        Effect   = "Allow"
+        Action   = [
           "ec2:StartInstances",
           "ec2:StopInstances",
           "ec2:DescribeInstances"
-        ],
+        ]
         Resource = "*"
       },
+      # Allow publishing to SNS
       {
-        Effect = "Allow",
-        Action = [
+        Effect   = "Allow"
+        Action   = [
           "sns:Publish"
-        ],
-        Resource = "*"
+        ]
+        Resource = aws_sns_topic.automate_ec2_start_stop.arn
       },
+      # Allow writing logs to CloudWatch Logs
       {
-        Effect = "Allow",
-        Action = [
+        Effect   = "Allow"
+        Action   = [
           "logs:CreateLogGroup",
           "logs:CreateLogStream",
           "logs:PutLogEvents"
-        ],
-        Resource = "*"
+        ]
+        Resource = "arn:aws:logs:${var.region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/${var.naming_prefix}-automate-ec2-start-stop:*"
       }
     ]
   })
 }
 
-# Attach the Policy to the Role
-resource "aws_iam_role_policy_attachment" "lambda_policy_attachment" {
-  role       = aws_iam_role.lambda_role.name
-  policy_arn = aws_iam_policy.lambda_policy.arn
+# Attach the policy to the IAM role
+resource "aws_iam_role_policy_attachment" "lambda_execution_policy_attachment" {
+  role       = aws_iam_role.lambda_execution_role.name
+  policy_arn = aws_iam_policy.lambda_execution_policy.arn
 }
 
-# SNS Topic for Notifications
-resource "aws_sns_topic" "sns_topic" {
-  name = "ec2_notification_topic"
+# Data for Lambda assume role policy
+data "aws_iam_policy_document" "lambda_assume_role_policy" {
+  statement {
+    effect = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
+
+    actions = ["sts:AssumeRole"]
+  }
 }
 
-# Lambda Function
-resource "aws_lambda_function" "ec2_manager_lambda" {
-  function_name = "ec2_manager"
-  role          = aws_iam_role.lambda_role.arn
-  handler       = "lambda_function.lambda_handler"
-  runtime       = "python3.9"
-  filename      = "path/to/your/deployment/package.zip"  # Update with the path to your deployment package
+# Reference the Lambda role in the Lambda function resource
+resource "aws_lambda_function" "automate_ec2_start_stop" {
+  function_name = "${var.naming_prefix}-automate-ec2-start-stop"
+  filename      = data.archive_file.automate_ec2_start_stop.output_path
+  role          = aws_iam_role.lambda_execution_role.arn
+  handler       = "index.handler"
+  runtime       = "python3.10"
+  timeout       = 180
+  memory_size   = 256
+
+  source_code_hash = data.archive_file.automate_ec2_start_stop.output_base64sha256
+
+  depends_on = [aws_cloudwatch_log_group.automate_ec2_start_stop]
 
   environment {
     variables = {
-      SNS_TOPIC_ARN     = aws_sns_topic.sns_topic.arn
-      EC2_INSTANCE_ID   = "your-ec2-instance-id"  # Update with your EC2 instance ID
+      SNS_TOPIC_ARN              = aws_sns_topic.automate_ec2_start_stop.arn
+      ERROR_EMAIL_SUBJECT        = var.error_email_subject
+      ERROR_EMAIL_HEADER         = var.error_email_header
+      ERROR_EMAIL_FOOTER         = var.error_email_footer
+      EC2_INSTANCE_IDS           = var.ec2_instance_ids
+      STOP_CRON_EXPRESSION       = var.stop_cron_expression
+      START_CRON_EXPRESSION      = var.start_cron_expression
+      MS_TEAMS_REPORTING_ENABLED = var.ms_teams_reporting_enabled
+      MS_TEAMS_WEBHOOK_URL       = var.ms_teams_webhook_url
     }
   }
 
-  depends_on = [aws_iam_role_policy_attachment.lambda_policy_attachment]
+  lifecycle {
+    ignore_changes = [tags, tags_all]
+  }
 }
 
-# CloudWatch Log Group
-resource "aws_cloudwatch_log_group" "lambda_log_group" {
-  name              = "/aws/lambda/${aws_lambda_function.ec2_manager_lambda.function_name}"
-  retention_in_days = 7  # Adjust retention as needed
+
+# Archive the Lambda function code into a zip file
+data "archive_file" "automate_ec2_start_stop" {
+  type        = "zip"
+  source_dir  = "${path.module}/automate-ec2-start-stop"
+  output_path = "${path.module}/builds/automate-ec2-start-stop.zip"
 }
 
-# EventBridge Rule for Starting EC2 Instance
-resource "aws_cloudwatch_event_rule" "start_rule" {
-  name                = "start_ec2_rule"
-  schedule_expression = "cron(0 8 * * ? *)"  # Update with your desired cron schedule
+# CloudWatch log group for the Lambda function
+resource "aws_cloudwatch_log_group" "automate_ec2_start_stop" {
+  name              = "/aws/lambda/${var.naming_prefix}-automate-ec2-start-stop"
+  retention_in_days = 7
+
+  lifecycle {
+    prevent_destroy = false
+  }
 }
 
-# EventBridge Rule for Stopping EC2 Instance
-resource "aws_cloudwatch_event_rule" "stop_rule" {
-  name                = "stop_ec2_rule"
-  schedule_expression = "cron(0 20 * * ? *)"  # Update with your desired cron schedule
+# Create an SNS topic that will be used to send error emails in case
+# there is an issue with the process.
+resource "aws_sns_topic" "automate_ec2_start_stop" {
+  name = "${var.naming_prefix}-automate-ec2-start-stop"
 }
 
-# EventBridge Targets
-resource "aws_cloudwatch_event_target" "start_target" {
-  rule = aws_cloudwatch_event_rule.start_rule.name
-  arn  = aws_lambda_function.ec2_manager_lambda.arn
-}
-
-resource "aws_cloudwatch_event_target" "stop_target" {
-  rule = aws_cloudwatch_event_rule.stop_rule.name
-  arn  = aws_lambda_function.ec2_manager_lambda.arn
-}
-
-# Lambda Permissions for EventBridge
-resource "aws_lambda_permission" "allow_eventbridge_start" {
-  statement_id  = "AllowExecutionFromEventBridgeStart"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.ec2_manager_lambda.function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.start_rule.arn
-}
-
-resource "aws_lambda_permission" "allow_eventbridge_stop" {
-  statement_id  = "AllowExecutionFromEventBridgeStop"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.ec2_manager_lambda.function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.stop_rule.arn
-}
-
-# SNS Topic Subscription for Email Notifications
+# Create SNS subscribers that will subscribe to the SNS topic
 resource "aws_sns_topic_subscription" "email_subscription" {
-  topic_arn = aws_sns_topic.sns_topic.arn
-  protocol  = "email"
-  endpoint  = "your-email@example.com"  # Update with your email address
+  for_each               = toset(var.notification_emails)
+  topic_arn              = aws_sns_topic.automate_ec2_start_stop.arn
+  protocol               = "email"
+  endpoint_auto_confirms = true
+  endpoint               = each.value
+}
+
+# EventBridge rule to trigger the Lambda function to START EC2 instances at 6 AM
+resource "aws_cloudwatch_event_rule" "start_ec2_instances" {
+  name                = "${var.naming_prefix}-start-ec2-instances"
+  description         = "EventBridge rule to trigger Lambda function to start EC2 instances at 6 AM (Monday to Friday)"
+  schedule_expression = "cron(0 6 ? * 2-6 *)" # 6 AM Monday to Friday
+}
+
+# EventBridge rule target for starting EC2 instances
+resource "aws_cloudwatch_event_target" "start_ec2_instances" {
+  rule      = aws_cloudwatch_event_rule.start_ec2_instances.name
+  target_id = "${var.naming_prefix}-start-ec2-instances"
+  arn       = aws_lambda_function.automate_ec2_start_stop.arn
+}
+
+# EventBridge rule to trigger the Lambda function to STOP EC2 instances at 6 PM
+resource "aws_cloudwatch_event_rule" "stop_ec2_instances" {
+  name                = "${var.naming_prefix}-stop-ec2-instances"
+  description         = "EventBridge rule to trigger Lambda function to stop EC2 instances at 6 PM (Monday to Friday)"
+  schedule_expression = "cron(0 18 ? * 2-6 *)" # 6 PM Monday to Friday
+}
+
+# EventBridge rule target for stopping EC2 instances
+resource "aws_cloudwatch_event_target" "stop_ec2_instances" {
+  rule      = aws_cloudwatch_event_rule.stop_ec2_instances.name
+  target_id = "${var.naming_prefix}-stop-ec2-instances"
+  arn       = aws_lambda_function.automate_ec2_start_stop.arn
 }

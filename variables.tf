@@ -1,61 +1,119 @@
 variable "environment" {
   type        = string
-  default     = ""
-  description = "value"  
+  description = "The environment in which resources are deployed (e.g., dev, test, prod)."
+
+  validation {
+    condition     = length(var.environment) > 0
+    error_message = "The 'environment' variable must not be empty."
+  }
 }
 
 variable "naming_prefix" {
-    type = string
-    default = ""
-    description = ""
+  type        = string
+  description = "The prefix used for naming AWS resources."
+
+  validation {
+    condition     = length(var.naming_prefix) > 0
+    error_message = "The 'naming_prefix' variable must not be empty."
+  }
 }
 
 variable "region" {
   type        = string
-  default     = ""
-  description = "value"
+  description = "The AWS region to deploy resources."
+
+  validation {
+    condition     = length(var.region) > 0
+    error_message = "The 'region' variable must not be empty."
+  }
 }
 
-variable "teams_webhook_url" {
-  type        = string
-  default     = ""
-  description = "value"
-
-}
-
-variable "email_address_to" {
+variable "notification_emails" {
   type        = list(string)
-  default     = ["value"]
-  description = "value"
+  description = "A list of email addresses to receive notifications."
+
+  validation {
+    condition     = length(var.notification_emails) > 0
+    error_message = "The 'notification_emails' variable must contain at least one email address."
+  }
 }
 
 variable "ec2_instance_ids" {
-    type        = list(string)
-  default     = []
-  description = "value"
+  type        = list(string)
+  description = "A list of EC2 instance IDs to be managed."
+
+  validation {
+    condition     = length(var.ec2_instance_ids) > 0
+    error_message = "The 'ec2_instance_ids' variable must contain at least one EC2 instance ID."
+  }
 }
 
 variable "stop_cron_expression" {
   type        = string
-  default     = ""
-  description = "value"
-}
+  description = "The cron expression for stopping EC2 instances."
 
+  validation {
+    condition     = length(var.stop_cron_expression) > 0
+    error_message = "The 'stop_cron_expression' variable must not be empty."
+  }
+}
 
 variable "start_cron_expression" {
   type        = string
-  default     = ""
-  description = "value"
+  description = "The cron expression for starting EC2 instances."
+
+  validation {
+    condition     = length(var.start_cron_expression) > 0
+    error_message = "The 'start_cron_expression' variable must not be empty."
+  }
 }
 
-variable "enable_ms_teams_reporting" {
-    type = bool
-    default = true
-    description = "value"
+variable "ms_teams_reporting_enabled" {
+  type        = bool
+  description = "Flag to enable or disable MS Teams reporting."
+
+  validation {
+    condition     = var.ms_teams_reporting_enabled == true || var.ms_teams_reporting_enabled == false
+    error_message = "The 'ms_teams_reporting_enabled' variable must be either true or false."
+  }
 }
 
-variable "ms_teams_incomming_webhook_url" {
-  type = string
-  default = ""https://cloudandthingsza.webhook.office.com/webhookb2/a98bb423-ddf6-4627-87c8-a0381fc7c6f9@d1516fb8-e664-4e2b-962e-f38e4315ac51/IncomingWebhook/e2f0d3becb0c49ed87c96cf8cc3a714f/249b7042-16ff-404b-995b-d4d28be54c77/V2i58YdipA3gTc0j0-23is7bmVYODHGJ_NALgvbZbYW9U1""
-  description = "value"
+variable "ms_teams_webhook_url" {
+  type        = string
+  description = "The MS Teams webhook URL for reporting."
+
+  validation {
+    condition     = length(var.ms_teams_webhook_url) > 0
+    error_message = "The 'ms_teams_webhook_url' variable must not be empty."
+  }
+}
+
+variable "error_email_subject" {
+  type        = string
+  description = "The subject of error notification emails."
+
+  validation {
+    condition     = length(var.error_email_subject) > 0
+    error_message = "The 'error_email_subject' variable must not be empty."
+  }
+}
+
+variable "error_email_header" {
+  type        = string
+  description = "The header content of error notification emails."
+
+  validation {
+    condition     = length(var.error_email_header) > 0
+    error_message = "The 'error_email_header' variable must not be empty."
+  }
+}
+
+variable "error_email_footer" {
+  type        = string
+  description = "The footer content of error notification emails."
+
+  validation {
+    condition     = length(var.error_email_footer) > 0
+    error_message = "The 'error_email_footer' variable must not be empty."
+  }
 }
