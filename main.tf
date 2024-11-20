@@ -62,7 +62,7 @@ data "aws_iam_policy_document" "lambda_assume_role_policy" {
 
 # Reference the Lambda role in the Lambda function resource
 resource "aws_lambda_function" "automate_ec2_start_stop" {
-  function_name = "${var.naming_prefix}-automate-ec2-start-stop"
+  function_name = "${var.naming_prefix}-lambda-function"
   filename      = data.archive_file.automate_ec2_start_stop.output_path
   role          = aws_iam_role.lambda_execution_role.arn
   handler       = "index.handler"
@@ -80,7 +80,7 @@ resource "aws_lambda_function" "automate_ec2_start_stop" {
       ERROR_EMAIL_SUBJECT        = var.error_email_subject
       ERROR_EMAIL_HEADER         = var.error_email_header
       ERROR_EMAIL_FOOTER         = var.error_email_footer
-      EC2_INSTANCE_IDS           = var.ec2_instance_ids
+      EC2_INSTANCE_IDS           = join(",", var.ec2_instance_ids)
       STOP_CRON_EXPRESSION       = var.stop_cron_expression
       START_CRON_EXPRESSION      = var.start_cron_expression
       MS_TEAMS_REPORTING_ENABLED = var.ms_teams_reporting_enabled
@@ -103,7 +103,7 @@ data "archive_file" "automate_ec2_start_stop" {
 
 # CloudWatch log group for the Lambda function
 resource "aws_cloudwatch_log_group" "automate_ec2_start_stop" {
-  name              = "/aws/lambda/${var.naming_prefix}-automate-ec2-start-stop"
+  name              = "/aws/lambda/${var.naming_prefix}-logging"
   retention_in_days = 7
 
   lifecycle {
@@ -114,7 +114,7 @@ resource "aws_cloudwatch_log_group" "automate_ec2_start_stop" {
 # Create an SNS topic that will be used to send error emails in case
 # there is an issue with the process.
 resource "aws_sns_topic" "automate_ec2_start_stop" {
-  name = "${var.naming_prefix}-automate-ec2-start-stop"
+  name = "${var.naming_prefix}-topic"
 }
 
 # Create SNS subscribers that will subscribe to the SNS topic
@@ -126,30 +126,35 @@ resource "aws_sns_topic_subscription" "email_subscription" {
   endpoint               = each.value
 }
 
-# EventBridge rule to trigger the Lambda function to START EC2 instances at 6 AM
-resource "aws_cloudwatch_event_rule" "start_ec2_instances" {
-  name                = "${var.naming_prefix}-start-ec2-instances"
-  description         = "EventBridge rule to trigger Lambda function to start EC2 instances at 6 AM (Monday to Friday)"
-  schedule_expression = "cron(0 6 ? * 2-6 *)" # 6 AM Monday to Friday
+# Define a map for EventBridge rules
+locals {
+  eventbridge_rules = {
+    start = {
+      name_suffix     = "start-ec2-instances"
+      description     = "EventBridge rule to trigger Lambda function to start EC2 instances at 6 AM (Monday to Friday)"
+      cron_expression = "cron(0 6 ? * 2-6 *)" # 6 AM Monday to Friday
+    }
+    stop = {
+      name_suffix     = "stop-ec2-instances"
+      description     = "EventBridge rule to trigger Lambda function to stop EC2 instances at 6 PM (Monday to Friday)"
+      cron_expression = "cron(0 18 ? * 2-6 *)" # 6 PM Monday to Friday
+    }
+  }
 }
 
-# EventBridge rule target for starting EC2 instances
-resource "aws_cloudwatch_event_target" "start_ec2_instances" {
-  rule      = aws_cloudwatch_event_rule.start_ec2_instances.name
-  target_id = "${var.naming_prefix}-start-ec2-instances"
-  arn       = aws_lambda_function.automate_ec2_start_stop.arn
+# Create EventBridge rules and targets
+resource "aws_cloudwatch_event_rule" "ec2_schedule" {
+  for_each = local.eventbridge_rules
+
+  name                = "${var.naming_prefix}-${each.value.name_suffix}-eventbridge-rule"
+  description         = each.value.description
+  schedule_expression = each.value.cron_expression
 }
 
-# EventBridge rule to trigger the Lambda function to STOP EC2 instances at 6 PM
-resource "aws_cloudwatch_event_rule" "stop_ec2_instances" {
-  name                = "${var.naming_prefix}-stop-ec2-instances"
-  description         = "EventBridge rule to trigger Lambda function to stop EC2 instances at 6 PM (Monday to Friday)"
-  schedule_expression = "cron(0 18 ? * 2-6 *)" # 6 PM Monday to Friday
-}
+resource "aws_cloudwatch_event_target" "ec2_schedule" {
+  for_each = local.eventbridge_rules
 
-# EventBridge rule target for stopping EC2 instances
-resource "aws_cloudwatch_event_target" "stop_ec2_instances" {
-  rule      = aws_cloudwatch_event_rule.stop_ec2_instances.name
-  target_id = "${var.naming_prefix}-stop-ec2-instances"
+  rule      = aws_cloudwatch_event_rule.ec2_schedule[each.key].name
+  target_id = "${var.naming_prefix}-${each.value.name_suffix}-eventbridge-target"
   arn       = aws_lambda_function.automate_ec2_start_stop.arn
 }
