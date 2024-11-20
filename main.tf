@@ -8,37 +8,34 @@ resource "aws_iam_role" "lambda_execution_role" {
 resource "aws_iam_policy" "lambda_execution_policy" {
   name        = "${var.naming_prefix}-lambda-execution-policy"
   description = "IAM policy for Lambda function to manage EC2, SNS, and CloudWatch Logs"
-  
+
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
-      # Allow managing EC2 instances
       {
-        Effect   = "Allow"
-        Action   = [
+        Effect = "Allow"
+        Action = [
           "ec2:StartInstances",
           "ec2:StopInstances",
           "ec2:DescribeInstances"
         ]
         Resource = "*"
       },
-      # Allow publishing to SNS
       {
-        Effect   = "Allow"
-        Action   = [
+        Effect = "Allow"
+        Action = [
           "sns:Publish"
         ]
         Resource = aws_sns_topic.automate_ec2_start_stop.arn
       },
-      # Allow writing logs to CloudWatch Logs
       {
-        Effect   = "Allow"
-        Action   = [
+        Effect = "Allow"
+        Action = [
           "logs:CreateLogGroup",
           "logs:CreateLogStream",
           "logs:PutLogEvents"
         ]
-        Resource = "arn:aws:logs:${var.region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/${var.naming_prefix}-automate-ec2-start-stop:*"
+        Resource = "arn:aws:logs:*:*:*"
       }
     ]
   })
