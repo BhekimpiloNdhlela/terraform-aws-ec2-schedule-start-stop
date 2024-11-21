@@ -32,15 +32,11 @@ This solution leverages the following AWS services:
 - **AWS SSM Parameter Store**  
   The Microsoft Teams Incoming Webhook URL is securely stored in AWS Systems Manager (SSM) Parameter Store.
 
----
 
 The following is the infrastructure diagram of the solution:
 
 
 ![Project Architecture](infra-documentation/infra-diagram.png "Architecture Overview")
-
-
-
 ---
 ## Usage
 
