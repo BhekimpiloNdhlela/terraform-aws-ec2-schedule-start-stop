@@ -15,20 +15,23 @@ This Terraform module automates the start and stop of specified EC2 instances on
 
 ```hcl
 module "automate_ec2_start_stop" {
-  source = "github.com/your-repo/automate-ec2-start-stop"
+  source = "github.com/BhekimpiloNdhlela/terraform-aws-ec2-schedule-start-stop.git"
 
-  environment               = "prod"
-  naming_prefix             = "my-app"
-  region                    = "us-east-1"
-  notification_emails       = ["admin@example.com", "ops@example.com"]
-  ec2_instance_ids          = ["i-0abcd1234efgh5678", "i-1234abcd5678efgh"]
-  stop_cron_expression      = "0 18 * * 1-5" # 6:00 PM Monday-Friday
-  start_cron_expression     = "0 6 * * 1-5"  # 6:00 AM Monday-Friday
+  environment                = "prod"
+  naming_prefix              = "my-app"
+  region                     = "us-east-1"
+  notification_emails        = ["foo@bar.com"]
+  ec2_instance_ids           = ["i-0abcd1234efgh5678", "i-1234abcd5678efgh"]
+  stop_cron_expression       = "0 18 * * 1-5" # 6:00 PM Monday-Friday
+  start_cron_expression      = "0 6 * * 1-5"  # 6:00 AM Monday-Friday
   ms_teams_reporting_enabled = true
   ms_teams_webhook_url       = "https://example.webhook.office.com"
-  error_email_subject       = "Lambda Error Notification"
-  error_email_header        = "The following error occurred while running the Lambda function:"
-  error_email_footer        = "Please check the AWS CloudWatch logs for more details."
+  error_email_subject        = "Lambda Error Notification"
+  error_email_header         = "The following error occurred while running the Lambda function:"
+  error_email_footer         = "Please check the AWS CloudWatch logs for more details."
+  success_email_subject      = "Lambda Error Notification"
+  success_email_header       = "The following error occurred while running the Lambda function:"
+  success_email_footer       = "Please check the AWS CloudWatch logs for more details."
 }
 ```
 
@@ -36,30 +39,30 @@ module "automate_ec2_start_stop" {
 
 ## Inputs
 
-| Name                        | Type           | Default | Description                                                                 |
-|-----------------------------|----------------|---------|-----------------------------------------------------------------------------|
-| `environment`               | `string`       | `""`    | The environment for deployment (e.g., `dev`, `test`, `prod`).               |
-| `naming_prefix`             | `string`       | `""`    | Prefix for naming AWS resources.                                            |
-| `region`                    | `string`       | `""`    | AWS region for resource deployment.                                         |
-| `notification_emails`       | `list(string)` | `[]`    | List of email addresses to receive notifications.                           |
-| `ec2_instance_ids`          | `list(string)` | `[]`    | List of EC2 instance IDs to manage.                                         |
-| `stop_cron_expression`      | `string`       | `""`    | Cron expression for stopping EC2 instances.                                 |
-| `start_cron_expression`     | `string`       | `""`    | Cron expression for starting EC2 instances.                                 |
-| `ms_teams_reporting_enabled`| `bool`         | `true`  | Enable or disable MS Teams reporting.                                       |
-| `ms_teams_webhook_url`      | `string`       | `""`    | Microsoft Teams webhook URL for reporting.                                  |
-| `error_email_subject`       | `string`       | `""`    | Subject for error notification emails.                                      |
-| `error_email_header`        | `string`       | `""`    | Header for error notification emails.                                       |
-| `error_email_footer`        | `string`       | `""`    | Footer for error notification emails.                                       |
+| Name                         | Type           | Default | Description                                                   |
+| ---------------------------- | -------------- | ------- | ------------------------------------------------------------- |
+| `environment`                | `string`       | `""`    | The environment for deployment (e.g., `dev`, `test`, `prod`). |
+| `naming_prefix`              | `string`       | `""`    | Prefix for naming AWS resources.                              |
+| `region`                     | `string`       | `""`    | AWS region for resource deployment.                           |
+| `notification_emails`        | `list(string)` | `[]`    | List of email addresses to receive notifications.             |
+| `ec2_instance_ids`           | `list(string)` | `[]`    | List of EC2 instance IDs to manage.                           |
+| `stop_cron_expression`       | `string`       | `""`    | Cron expression for stopping EC2 instances.                   |
+| `start_cron_expression`      | `string`       | `""`    | Cron expression for starting EC2 instances.                   |
+| `ms_teams_reporting_enabled` | `bool`         | `true`  | Enable or disable MS Teams reporting.                         |
+| `ms_teams_webhook_url`       | `string`       | `""`    | Microsoft Teams webhook URL for reporting.                    |
+| `error_email_subject`        | `string`       | `""`    | Subject for error notification emails.                        |
+| `error_email_header`         | `string`       | `""`    | Header for error notification emails.                         |
+| `error_email_footer`         | `string`       | `""`    | Footer for error notification emails.                         |
 
 ---
 
 ## Outputs
 
-| Name              | Description                                  |
-|-------------------|----------------------------------------------|
-| `sns_topic_arn`   | ARN of the SNS topic for notifications.      |
-| `lambda_function` | Name of the Lambda function.                 |
-| `cloudwatch_logs` | CloudWatch Log Group used by the Lambda.     |
+| Name              | Description                              |
+| ----------------- | ---------------------------------------- |
+| `sns_topic_arn`   | ARN of the SNS topic for notifications.  |
+| `lambda_function` | Name of the Lambda function.             |
+| `cloudwatch_logs` | CloudWatch Log Group used by the Lambda. |
 
 ---
 
@@ -74,28 +77,31 @@ module "automate_ec2_start_stop" {
 ## Deployment
 
 1. Clone the repository:
+
    ```bash
-   git clone https://github.com/your-repo/automate-ec2-start-stop.git
+   git clone https://github.com/BhekimpiloNdhlela/terraform-aws-ec2-schedule-start-stop.git
    cd automate-ec2-start-stop
    ```
 
 2. Create a `terraform.tfvars` file with your configuration:
+
    ```hcl
-   environment               = "prod"
-   naming_prefix             = "my-app"
-   region                    = "us-east-1"
-   notification_emails       = ["admin@example.com"]
-   ec2_instance_ids          = ["i-0abcd1234efgh5678"]
-   stop_cron_expression      = "0 18 * * 1-5"
-   start_cron_expression     = "0 6 * * 1-5"
+   environment                = "prod"
+   naming_prefix              = "my-app"
+   region                     = "us-east-1"
+   notification_emails        = ["foo@bar.com"]
+   ec2_instance_ids           = ["i-0abcd1234efgh5678"]
+   stop_cron_expression       = "0 18 * * 1-5"
+   start_cron_expression      = "0 6 * * 1-5"
    ms_teams_reporting_enabled = true
    ms_teams_webhook_url       = "https://example.webhook.office.com"
-   error_email_subject       = "Error Notification"
-   error_email_header        = "An error occurred:"
-   error_email_footer        = "Check CloudWatch Logs for details."
+   error_email_subject        = "Error Notification"
+   error_email_header         = "An error occurred:"
+   error_email_footer         = "Check CloudWatch Logs for details."
    ```
 
 3. Initialize Terraform:
+
    ```bash
    terraform init
    ```
@@ -115,10 +121,3 @@ This module is maintained by **Bheki**. Contributions are welcome!
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-```
-
-### Instructions
-- Replace `your-repo` with your actual GitHub repository URL.
-- Customize the author and license sections as per your requirements.
-  
-Let me know if you need further assistance!
