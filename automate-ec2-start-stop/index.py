@@ -1,7 +1,7 @@
 import boto3
 import os
 import json
-from typing import List
+from typing import List, Optional
 import requests
 
 ec2_client = boto3.client("ec2")
@@ -37,13 +37,13 @@ def send_email_notification(subject: str, message: str) -> None:
             Subject=subject,
             Message=message,
         )
-        print("[INFO]: SNS notification sent successfully")
+        print("[INFO]: SNS notification sent successfully.")
     except Exception as e:
-        print(f"[ERROR]: Failed to send SNS notification: {e}")
+        raise Exception(f"[ERROR]: Failed to send SNS notification: {e}")
 
 def send_ms_teams_notification(message: str) -> None:
     """
-    Sends a message to Microsoft Teams via webhook.
+    Sends a message to Microsoft Teams via a webhook.
 
     Args:
         message (str): The message to send to the Teams channel.
@@ -52,7 +52,7 @@ def send_ms_teams_notification(message: str) -> None:
         None
     """
     if not MS_TEAMS_REPORTING_ENABLED:
-        print("[INFO]: MicroSoft Teams reporting is disabled.")
+        print("[INFO]: Microsoft Teams reporting is disabled.")
         return
 
     headers = {"Content-Type": "application/json"}
@@ -61,19 +61,30 @@ def send_ms_teams_notification(message: str) -> None:
     try:
         response = requests.post(MS_TEAMS_WEBHOOK_URL, headers=headers, data=json.dumps(payload))
         response.raise_for_status()
-        print(f"[INFO]: Message sent to Teams successfully: {response.status_code}")
+        print(f"[INFO]: Message sent to Teams successfully. Status Code: {response.status_code}")
     except requests.exceptions.RequestException as e:
-        print(f"[ERROR]: Failed to send message to Teams: {e}")
+        raise Exception(f"[ERROR]: Failed to send message to Teams: {e}")
 
-def report_status(error, message):
-    if error:
-        send_email_notification(ERROR_EMAIL_SUBJECT, message)
-        send_ms_teams_notification(message)
-    else:
-        send_email_notification(SUCCESS_EMAIL_SUBJECT, message)
-        send_ms_teams_notification(message)
+def log_and_report_process_results(error: bool, message: str) -> None:
+    """
+    Logs the process results and reports them via SNS and Microsoft Teams.
 
-def stop_ec2_instance(instance_id: str, failed_instances: List[str]) -> None:
+    Args:
+        error (bool): Whether the process resulted in an error.
+        message (str): The log message to report.
+
+    Returns:
+        None
+    """
+    print(message)
+
+    if error: formatted_message = f"{ERROR_EMAIL_HEADER}\n{message}\n{ERROR_EMAIL_FOOTER}"
+    else: formatted_message = f"{SUCCESS_EMAIL_HEADER}\n{message}\n{SUCCESS_EMAIL_FOOTER}"
+
+    send_ms_teams_notification(formatted_message)
+    send_email_notification(ERROR_EMAIL_SUBJECT if error else SUCCESS_EMAIL_SUBJECT, formatted_message)
+
+def stop_ec2_instance() -> None:
     """
     Stops an EC2 instance.
 
@@ -85,13 +96,12 @@ def stop_ec2_instance(instance_id: str, failed_instances: List[str]) -> None:
         None
     """
     try:
-        ec2_client.stop_instances(InstanceIds=[instance_id])
-        print(f"[INFO]: Successfully stopped instance: '{instance_id}'.")
+        ec2_client.stop_instances(InstanceIds=EC2_INSTANCE_IDS_LIST)
+        print(f"[INFO]: Successfully stopped instance: '{EC2_INSTANCE_IDS_LIST}'.")
     except Exception as e:
-        failed_instances.append(instance_id)
-        print(f"[ERROR]: Failed to start instance {instance_id}: {str(e)}")
+        raise Exception(f"[ERROR]: Failed to start instance {EC2_INSTANCE_IDS_LIST}: {str(e)}")
 
-def start_ec2_instance(instance_id: str, failed_instances: List[str]) -> None:
+def start_ec2_instance() -> None:
     """
     Starts an EC2 instance.
 
@@ -103,37 +113,24 @@ def start_ec2_instance(instance_id: str, failed_instances: List[str]) -> None:
         None
     """
     try:
-        ec2_client.start_instances(InstanceIds=[instance_id])
-        print(f"[INFO]: Successfully started instance: '{instance_id}'.")
+        ec2_client.start_instances(InstanceIds=EC2_INSTANCE_IDS_LIST)
     except Exception as e:
-        failed_instances.append(instance_id)
-        print(f"[ERROR]: Failed to start instance {instance_id}: {str(e)}")
+        raise Exception(f"[ERROR]: Failed to start instance {EC2_INSTANCE_IDS_LIST}: {str(e)}")
 
 def handler(event, context):
     """
     AWS Lambda handler to start or stop EC2 instances based on the action in the event.
     """
     print(f"Lambda triggered with event: {event}")
-    action, failed_instances = event.get('action'), []
 
     try:
-        if action == "start":
-            for instance_id in EC2_INSTANCE_IDS_LIST:
-                start_ec2_instance(instance_id, failed_instances)
-            success_message = f"[INFO]: Successfully started EC2 instances: {', '.join(EC2_INSTANCE_IDS_LIST)}"
-            report_status(False, success_message)
-        elif action == "stop":
-            for instance_id in EC2_INSTANCE_IDS_LIST:
-                stop_ec2_instance(instance_id, failed_instances)
-            success_message = f"[INFO]: Successfully stopped EC2 instances: {', '.join(EC2_INSTANCE_IDS_LIST)}"
-            report_status(False, success_message)
-        else:
-            print(f"[WARNING]: Unknown action received: '{action}'")
-            return
+        if event.get('action') == "start":
+            start_ec2_instance()
+            success_message = f"[INFO]: Successfully started EC2 instances: {'\n'.join(EC2_INSTANCE_IDS_LIST)}"
+            log_and_report_process_results(False, success_message)
+        elif event.get('action') == "stop":
+            stop_ec2_instance()
+            success_message = f"[INFO]: Successfully stopped EC2 instances: {'\n'.join(EC2_INSTANCE_IDS_LIST)}"
+            log_and_report_process_results(False, success_message)
     except Exception as e:
-        error_message = f"[ERROR]: Error occurred during {action} action on EC2 instances: {EC2_INSTANCE_IDS_LIST}. Error: {str(e)}"
-        report_status(True, error_message)
-
-    if failed_instances:
-        error_message = f"[ERROR]: The following EC2 instances failed to {action}:\n" +"\n".join(failed_instances)
-        report_status(True, error_message)
+        log_and_report_process_results(True, str(e))
