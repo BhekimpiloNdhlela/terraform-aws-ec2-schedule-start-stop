@@ -68,8 +68,12 @@ def send_ms_teams_notification(message: str) -> None:
         print(f"Failed to send message to Teams: {e}")
 
 def report_status(error, message):
-    pass
-
+    if error:
+        send_email_notification(ERROR_EMAIL_SUBJECT, message)
+        send_ms_teams_notification(message)
+    else:
+        send_email_notification(SUCCESS_EMAIL_SUBJECT, message)
+        send_ms_teams_notification(message)
 
 def stop_ec2_instance(instance_id: str, failed_instances: List[str]) -> None:
     """
@@ -86,9 +90,8 @@ def stop_ec2_instance(instance_id: str, failed_instances: List[str]) -> None:
         ec2_client.stop_instances(InstanceIds=[instance_id])
         print(f"Successfully stopped instance: '{instance_id}'.")
     except Exception as e:
-        error_message = f"Failed to stop instance {instance_id}: {str(e)}"
-        print(error_message)
         failed_instances.append(instance_id)
+        print(f"Failed to start instance {instance_id}: {str(e)}")
 
 
 def start_ec2_instance(instance_id: str, failed_instances: List[str]) -> None:
@@ -106,59 +109,34 @@ def start_ec2_instance(instance_id: str, failed_instances: List[str]) -> None:
         ec2_client.start_instances(InstanceIds=[instance_id])
         print(f"Successfully started instance: '{instance_id}'.")
     except Exception as e:
-        error_message = f"Failed to start instance {instance_id}: {str(e)}"
-        print(error_message)
         failed_instances.append(instance_id)
-
+        print(f"Failed to start instance {instance_id}: {str(e)}")
 
 def handler(event, context):
     """
     AWS Lambda handler to start or stop EC2 instances based on the action in the event.
-
-    Args:
-        event (dict): The event data passed to the Lambda function.
-        context (object): The runtime information for the Lambda function.
-
-    Returns:
-        None
     """
     print(f"Lambda triggered with event: {event}")
-    # action = event.get("detail", {}).get("action")
-    action = event.get('action')
-
-    print("BHEKI MS_TEAMS_REPORTING_ENABLED: ", MS_TEAMS_REPORTING_ENABLED)
-    failed_instances = []
+    action, failed_instances = event.get('action'), []
 
     try:
         if action == "start":
             for instance_id in EC2_INSTANCE_IDS_LIST:
                 start_ec2_instance(instance_id, failed_instances)
             success_message = f"Successfully started EC2 instances: {', '.join(EC2_INSTANCE_IDS_LIST)}"
-            send_email_notification(ERROR_EMAIL_SUBJECT, success_message)
-            send_ms_teams_notification(success_message)
-            print(success_message)
-
+            report_status(False, success_message)
         elif action == "stop":
             for instance_id in EC2_INSTANCE_IDS_LIST:
                 stop_ec2_instance(instance_id, failed_instances)
             success_message = f"Successfully stopped EC2 instances: {', '.join(EC2_INSTANCE_IDS_LIST)}"
-            send_email_notification(ERROR_EMAIL_SUBJECT, success_message)
-            send_ms_teams_notification(success_message)
-            print(success_message)
-
+            report_status(False, success_message)
         else:
             print(f"[INFO]: Unknown action received: '{action}'")
             return
-
     except Exception as e:
         error_message = f"Error occurred during {action} action on EC2 instances: {EC2_INSTANCE_IDS_LIST}. Error: {str(e)}"
-        print(error_message)
-        send_email_notification(ERROR_EMAIL_SUBJECT, error_message)
-        send_ms_teams_notification(error_message)
+        report_status(True, error_message)
 
     if failed_instances:
-        error_message = (f"The following EC2 instances failed to {action}:\n" +"\n".join(failed_instances)
-        )
-        print(error_message)
-        send_email_notification(ERROR_EMAIL_SUBJECT, error_message)
-        send_ms_teams_notification(error_message)
+        error_message = f"The following EC2 instances failed to {action}:\n" +"\n".join(failed_instances)
+        report_status(True, error_message)

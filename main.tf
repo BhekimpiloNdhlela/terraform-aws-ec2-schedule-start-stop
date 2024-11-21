@@ -88,11 +88,14 @@ resource "aws_lambda_function" "automate_ec2_start_stop" {
       EC2_INSTANCE_IDS           = join(",", var.ec2_instance_ids)
     }
   }
+  layers = ["arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:layer:requests-layer:1"]
 
   lifecycle {
     ignore_changes = [tags, tags_all]
   }
 }
+
+data "aws_caller_identity" "current" {}
 
 # Grant EventBridge permission to invoke the Lambda function
 resource "aws_lambda_permission" "eventbridge_invoke" {
