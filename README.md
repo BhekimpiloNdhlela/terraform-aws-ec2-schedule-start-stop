@@ -11,6 +11,37 @@ This Terraform module automates the start and stop of specified EC2 instances on
 
 ---
 
+## Architecture/Infrastructure
+This solution leverages the following AWS services:
+
+- **AWS SNS**  
+  Simple Notification Service (SNS) is used to send emails to the specified email endpoints. SNS is responsible for reporting errors or notifying the success/failure of the start/stop process.
+
+- **AWS EventBridge Rule (STOP)**  
+  This rule is configured to trigger the Lambda function to stop the specified EC2 instances.
+
+- **AWS EventBridge Rule (START)**  
+  This rule is configured to trigger the Lambda function to start the specified EC2 instances.
+
+- **AWS Lambda**  
+  The Lambda function is used to start or stop the specified EC2 instances when triggered by an EventBridge rule, based on the defined cron expression.
+
+- **AWS S3**  
+  An S3 bucket is used to store an external module (`requests`), which is required for making POST requests to the Microsoft Teams Incoming Webhook endpoint.
+
+- **AWS SSM Parameter Store**  
+  The Microsoft Teams Incoming Webhook URL is securely stored in AWS Systems Manager (SSM) Parameter Store.
+
+---
+
+The following is the infrastructure diagram of the solution:
+
+
+![Project Architecture](infra-documentation/infra-diagram.png "Architecture Overview")
+
+
+
+---
 ## Usage
 
 ```hcl
