@@ -48,22 +48,22 @@ variable "ec2_instance_ids" {
   }
 }
 
-variable "stop_cron_expression" {
+variable "stop_expression" {
   type        = string
   description = "The cron expression for stopping EC2 instances."
 
   validation {
-    condition     = length(var.stop_cron_expression) > 0
+    condition     = length(var.stop_expression) > 0
     error_message = "The 'stop_cron_expression' variable must not be empty."
   }
 }
 
-variable "start_cron_expression" {
+variable "start_expression" {
   type        = string
   description = "The cron expression for starting EC2 instances."
 
   validation {
-    condition     = length(var.start_cron_expression) > 0
+    condition     = length(var.start_expression) > 0
     error_message = "The 'start_cron_expression' variable must not be empty."
   }
 }
@@ -115,5 +115,35 @@ variable "error_email_footer" {
   validation {
     condition     = length(var.error_email_footer) > 0
     error_message = "The 'error_email_footer' variable must not be empty."
+  }
+}
+
+variable "success_email_subject" {
+  type        = string
+  description = "The subject of success notification emails."
+
+  validation {
+    condition     = length(var.success_email_subject) > 0
+    error_message = "The 'success_email_subject' variable must not be empty."
+  }
+}
+
+variable "success_email_header" {
+  type        = string
+  description = "The header content of success notification emails."
+
+  validation {
+    condition     = length(var.success_email_header) > 0
+    error_message = "The 'success_email_header' variable must not be empty."
+  }
+}
+
+variable "success_email_footer" {
+  type        = string
+  description = "The footer content of success notification emails."
+
+  validation {
+    condition     = length(var.success_email_footer) > 0
+    error_message = "The 'success_email_footer' variable must not be empty."
   }
 }

@@ -80,11 +80,12 @@ resource "aws_lambda_function" "automate_ec2_start_stop" {
       ERROR_EMAIL_SUBJECT        = var.error_email_subject
       ERROR_EMAIL_HEADER         = var.error_email_header
       ERROR_EMAIL_FOOTER         = var.error_email_footer
-      EC2_INSTANCE_IDS           = join(",", var.ec2_instance_ids)
-      STOP_CRON_EXPRESSION       = var.stop_cron_expression
-      START_CRON_EXPRESSION      = var.start_cron_expression
+      SUCCESS_EMAIL_SUBJECT      = var.success_email_subject
+      SUCCESS_EMAIL_FOOTER       = var.success_email_footer
+      SUCCESS_EMAIL_HEADER       = var.success_email_header
       MS_TEAMS_REPORTING_ENABLED = var.ms_teams_reporting_enabled
       MS_TEAMS_WEBHOOK_URL       = var.ms_teams_webhook_url
+      EC2_INSTANCE_IDS           = join(",", var.ec2_instance_ids)
     }
   }
 
@@ -93,6 +94,16 @@ resource "aws_lambda_function" "automate_ec2_start_stop" {
   }
 }
 
+# Grant EventBridge permission to invoke the Lambda function
+resource "aws_lambda_permission" "eventbridge_invoke" {
+  for_each = local.eventbridge_rules
+
+  statement_id  = "${var.naming_prefix}-${each.value.name_suffix}-permission"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.automate_ec2_start_stop.arn
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.ec2_schedule[each.key].arn
+}
 
 # Archive the Lambda function code into a zip file
 data "archive_file" "automate_ec2_start_stop" {
@@ -111,13 +122,12 @@ resource "aws_cloudwatch_log_group" "automate_ec2_start_stop" {
   }
 }
 
-# Create an SNS topic that will be used to send error emails in case
-# there is an issue with the process.
+# Create an SNS topic to send error notifications
 resource "aws_sns_topic" "automate_ec2_start_stop" {
   name = "${var.naming_prefix}-topic"
 }
 
-# Create SNS subscribers that will subscribe to the SNS topic
+# Create SNS subscriptions for error notifications
 resource "aws_sns_topic_subscription" "email_subscription" {
   for_each               = toset(var.notification_emails)
   topic_arn              = aws_sns_topic.automate_ec2_start_stop.arn
@@ -132,17 +142,19 @@ locals {
     start = {
       name_suffix     = "start-ec2-instances"
       description     = "EventBridge rule to trigger Lambda function to start EC2 instances at 6 AM (Monday to Friday)"
-      cron_expression = "cron(0 6 ? * 2-6 *)" # 6 AM Monday to Friday
+      cron_expression = var.start_expression
+      action          = "start" # Custom flag for action
     }
     stop = {
       name_suffix     = "stop-ec2-instances"
       description     = "EventBridge rule to trigger Lambda function to stop EC2 instances at 6 PM (Monday to Friday)"
-      cron_expression = "cron(0 18 ? * 2-6 *)" # 6 PM Monday to Friday
+      cron_expression = var.stop_expression
+      action          = "stop" # Custom flag for action
     }
   }
 }
 
-# Create EventBridge rules and targets
+# Create EventBridge rules
 resource "aws_cloudwatch_event_rule" "ec2_schedule" {
   for_each = local.eventbridge_rules
 
@@ -151,10 +163,18 @@ resource "aws_cloudwatch_event_rule" "ec2_schedule" {
   schedule_expression = each.value.cron_expression
 }
 
+# Create EventBridge targets for the Lambda function
 resource "aws_cloudwatch_event_target" "ec2_schedule" {
   for_each = local.eventbridge_rules
 
   rule      = aws_cloudwatch_event_rule.ec2_schedule[each.key].name
   target_id = "${var.naming_prefix}-${each.value.name_suffix}-eventbridge-target"
   arn       = aws_lambda_function.automate_ec2_start_stop.arn
+
+  # Pass a custom input to identify the source of the trigger
+  input = jsonencode({
+    source      = each.key
+    action      = each.value.action
+    description = each.value.description
+  })
 }
