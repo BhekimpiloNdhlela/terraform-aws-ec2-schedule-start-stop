@@ -97,7 +97,7 @@ def stop_ec2_instance() -> None:
     """
     try:
         ec2_client.stop_instances(InstanceIds=EC2_INSTANCE_IDS_LIST)
-        print(f"[INFO]: Successfully stopped instance: '{EC2_INSTANCE_IDS_LIST}'.")
+        print(f"[INFO]: Successfully stopped instance(s): '{EC2_INSTANCE_IDS_LIST}'.")
     except Exception as e:
         raise Exception(f"[ERROR]: Failed to start instance {EC2_INSTANCE_IDS_LIST}: {str(e)}")
 
@@ -114,6 +114,7 @@ def start_ec2_instance() -> None:
     """
     try:
         ec2_client.start_instances(InstanceIds=EC2_INSTANCE_IDS_LIST)
+        print(f"[INFO]: Successfully started instance(s): '{EC2_INSTANCE_IDS_LIST}'.")
     except Exception as e:
         raise Exception(f"[ERROR]: Failed to start instance {EC2_INSTANCE_IDS_LIST}: {str(e)}")
 

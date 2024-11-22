@@ -1,0 +1,34 @@
+# repos:
+#   # Python hooks
+#   - repo: https://github.com/pre-commit/pre-commit-hooks
+#     rev: v4.4.0  # Latest version of pre-commit-hooks
+#     hooks:
+#       - id: trailing-whitespace  # Remove trailing whitespace
+#       - id: end-of-file-fixer    # Ensure a newline at the end of files
+#       - id: check-yaml           # Validate YAML files
+#       - id: check-json           # Validate JSON files
+#       - id: debug-statements     # Remove debug statements like `pdb` and `print`
+#       - id: requirements-txt-fixer  # Keep `requirements.txt` in order
+
+#   - repo: https://github.com/psf/black
+#     rev: 23.9.1  # Latest version of Black
+#     hooks:
+#       - id: black  # Automatically format Python code
+
+#   - repo: https://github.com/PyCQA/flake8
+#     rev: 6.1.0  # Latest version of Flake8
+#     hooks:
+#       - id: flake8  # Lint Python code for errors
+
+#   # Terraform hooks
+#   - repo: https://github.com/antonbabenko/pre-commit-terraform
+#     rev: v1.78.0  # Use the latest version
+#     hooks:
+#       - id: terraform_fmt    # Format Terraform code
+#       - id: terraform_validate  # Validate Terraform configuration
+
+#   # General hooks
+#   - repo: https://github.com/awslabs/git-secrets
+#     rev: v1.3.0  # Latest version of git-secrets
+#     hooks:
+#       - id: git-secrets  # Check for hardcoded secrets in code

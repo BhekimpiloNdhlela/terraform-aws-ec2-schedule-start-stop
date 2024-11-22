@@ -1,3 +1,5 @@
+data "aws_caller_identity" "current" {}
+
 # IAM role for Lambda function
 resource "aws_iam_role" "lambda_execution_role" {
   name               = "${var.naming_prefix}-lambda-execution-role"
@@ -15,18 +17,18 @@ resource "aws_iam_policy" "lambda_execution_policy" {
       {
         Effect = "Allow"
         Action = [
+          "sns:Publish"
+        ]
+        Resource = aws_sns_topic.automate_ec2_start_stop.arn
+      },
+      {
+        Effect = "Allow"
+        Action = [
           "ec2:StartInstances",
           "ec2:StopInstances",
           "ec2:DescribeInstances"
         ]
         Resource = "*"
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "sns:Publish"
-        ]
-        Resource = aws_sns_topic.automate_ec2_start_stop.arn
       },
       {
         Effect = "Allow"
@@ -55,7 +57,6 @@ data "aws_iam_policy_document" "lambda_assume_role_policy" {
       type        = "Service"
       identifiers = ["lambda.amazonaws.com"]
     }
-
     actions = ["sts:AssumeRole"]
   }
 }
@@ -71,8 +72,8 @@ resource "aws_lambda_function" "automate_ec2_start_stop" {
   memory_size   = 256
 
   source_code_hash = data.archive_file.automate_ec2_start_stop.output_base64sha256
-
-  depends_on = [aws_cloudwatch_log_group.automate_ec2_start_stop]
+  depends_on       = [aws_cloudwatch_log_group.automate_ec2_start_stop]
+  layers           = [aws_lambda_layer_version.automate_ec2_start_stop.arn]
 
   environment {
     variables = {
@@ -88,14 +89,18 @@ resource "aws_lambda_function" "automate_ec2_start_stop" {
       EC2_INSTANCE_IDS           = join(",", var.ec2_instance_ids)
     }
   }
-  layers = ["arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:layer:requests-layer:1"]
 
   lifecycle {
     ignore_changes = [tags, tags_all]
   }
 }
 
-data "aws_caller_identity" "current" {}
+resource "aws_lambda_layer_version" "automate_ec2_start_stop" {
+  filename            = "${path.module}/layer/requests.zip"
+  layer_name          = "${var.naming_prefix}-requests"
+  description         = "The requests library for Lambda function to make HTTP requests to MS Teams webhook."
+  compatible_runtimes = ["python3.10"]
+}
 
 # Grant EventBridge permission to invoke the Lambda function
 resource "aws_lambda_permission" "eventbridge_invoke" {
@@ -111,8 +116,8 @@ resource "aws_lambda_permission" "eventbridge_invoke" {
 # Archive the Lambda function code into a zip file
 data "archive_file" "automate_ec2_start_stop" {
   type        = "zip"
-  source_dir  = "${path.module}/automate-ec2-start-stop"
-  output_path = "${path.module}/builds/automate-ec2-start-stop.zip"
+  source_dir  = "${path.module}/lambda/automate-ec2-start-stop"
+  output_path = "${path.module}/builds/lambda/automate-ec2-start-stop.zip"
 }
 
 # CloudWatch log group for the Lambda function
@@ -132,7 +137,8 @@ resource "aws_sns_topic" "automate_ec2_start_stop" {
 
 # Create SNS subscriptions for error notifications
 resource "aws_sns_topic_subscription" "email_subscription" {
-  for_each               = toset(var.notification_emails)
+  for_each = toset(var.notification_emails)
+
   topic_arn              = aws_sns_topic.automate_ec2_start_stop.arn
   protocol               = "email"
   endpoint_auto_confirms = true
