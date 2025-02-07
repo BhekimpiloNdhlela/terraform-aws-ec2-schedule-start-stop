@@ -141,7 +141,7 @@ module "automate_ec2_start_stop" {
 
 ---
 
-## Feature Request/TODO:
+## Feature Request/TODO
 - convert to module for reusability
 - JP has requested to use tags instead of a list of ec2 instance `auto-on` and `auto-off` inconjuction with the ec2 instance IDs list
 
