@@ -16,10 +16,10 @@ SUCCESS_EMAIL_HEADER = os.environ.get("SUCCESS_EMAIL_HEADER")
 SUCCESS_EMAIL_FOOTER = os.environ.get("SUCCESS_EMAIL_FOOTER")
 MS_TEAMS_REPORTING_ENABLED = os.environ.get("MS_TEAMS_REPORTING_ENABLED", "false").lower() == "true"
 MS_TEAMS_WEBHOOK_URL = os.environ.get("MS_TEAMS_WEBHOOK_URL")
-EC2_SCHEDULE_AUTO_START_VALUE = os.environ.get("EC2_SCHEDULE_AUTO_START_VALUE")
-EC2_SCHEDULE_AUTO_STOP_VALUE = os.environ.get("EC2_SCHEDULE_AUTO_STOP_VALUE")
-EC2_SCHEDULE_AUTO_START_KEY = os.environ.get("EC2_SCHEDULE_AUTO_START_KEY")
-EC2_SCHEDULE_AUTO_STOP_KEY = os.environ.get("EC2_SCHEDULE_AUTO_STOP_KEY")
+START_TAG_VALUE = os.environ.get("EC2_SCHEDULE_AUTO_START_VALUE")
+STOP_TAG_VALUE = os.environ.get("EC2_SCHEDULE_AUTO_STOP_VALUE")
+START_TAG_KEY = os.environ.get("EC2_SCHEDULE_AUTO_START_KEY")
+STOP_TAG_KEY = os.environ.get("EC2_SCHEDULE_AUTO_STOP_KEY")
 
 def send_email_notification(subject: str, message: str) -> None:
     """
@@ -159,12 +159,12 @@ def handler(event, context):
     
     try:
         if action == "start":
-            instance_ids = get_ec2_instance_ids_by_schedule_tag(tag_key, tag_value)
+            instance_ids = get_ec2_instance_ids_by_schedule_tag(START_TAG_KEY, START_TAG_VALUE)
             start_ec2_instance(instance_ids)
             success_message = f"[INFO]: Successfully started EC2 instances: {'\n'.join([])}"
             log_and_report_process_results(False, success_message)
         elif action == "stop":
-            instance_ids = get_ec2_instance_ids_by_schedule_tag(tag_key, tag_value)
+            instance_ids = get_ec2_instance_ids_by_schedule_tag(STOP_TAG_KEY, STOP_TAG_VALUE)
             stop_ec2_instance(instance_ids)
             success_message = f"[INFO]: Successfully stopped EC2 instances: {'\n'.join([])}"
             log_and_report_process_results(False, success_message)
