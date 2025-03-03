@@ -58,6 +58,52 @@ variable "start_expression" {
   }
 }
 
+variable "schedule_auto_start_key" {
+  type        = string
+  description = "The tag key used to identify EC2 instances for auto-start."
+  default     = "scheduled-auto-stop"
+
+  validation {
+    condition     = length(var.schedule_auto_start_key) > 0
+    error_message = "The 'schedule_auto_start_key' variable must not be empty."
+  }
+}
+
+variable "schedule_auto_start_value" {
+  type        = string
+  description = "The tag value used to identify EC2 instances for auto-start."
+  default     = "true"
+
+  validation {
+    condition     = length(var.schedule_auto_start_value) > 0
+    error_message = "The 'schedule_auto_start_value' variable must not be empty."
+  }
+}
+
+variable "schedule_auto_stop_key" {
+  type        = string
+  description = "The tag key used to identify EC2 instances for auto-stop."
+  default     = "scheduled-auto-stop"
+
+  validation {
+    condition     = length(var.schedule_auto_stop_key) > 0
+    error_message = "The 'schedule_auto_stop_key' variable must not be empty."
+  }
+}
+
+variable "schedule_auto_stop_value" {
+  type        = string
+  description = "The tag value used to identify EC2 instances for auto-stop."
+  default     = "true"
+
+  validation {
+    condition     = length(var.schedule_auto_stop_value) > 0
+    error_message = "The 'schedule_auto_stop_value' variable must not be empty."
+  }
+}
+
+
+
 variable "ms_teams_reporting_enabled" {
   type        = bool
   description = "Flag to enable or disable MS Teams reporting."
