@@ -48,7 +48,6 @@ module "automate_ec2_start_stop" {
   naming_prefix              = "my-app"
   region                     = "us-east-1"
   notification_emails        = ["foo@bar.com"]
-  ec2_instance_ids           = ["i-0abcd1234efgh5678", "i-1234abcd5678efgh"]
   stop_cron_expression       = "0 18 * * 1-5" # 6:00 PM Monday-Friday
   start_cron_expression      = "0 6 * * 1-5"  # 6:00 AM Monday-Friday
   ms_teams_reporting_enabled = true
@@ -72,7 +71,6 @@ module "automate_ec2_start_stop" {
 | `naming_prefix`              | `string`       | `""`    | Prefix for naming AWS resources.                              |
 | `region`                     | `string`       | `""`    | AWS region for resource deployment.                           |
 | `notification_emails`        | `list(string)` | `[]`    | List of email addresses to receive notifications.             |
-| `ec2_instance_ids`           | `list(string)` | `[]`    | List of EC2 instance IDs to manage.                           |
 | `stop_cron_expression`       | `string`       | `""`    | Cron expression for stopping EC2 instances.                   |
 | `start_cron_expression`      | `string`       | `""`    | Cron expression for starting EC2 instances.                   |
 | `ms_teams_reporting_enabled` | `bool`         | `true`  | Enable or disable MS Teams reporting.                         |
@@ -117,7 +115,6 @@ module "automate_ec2_start_stop" {
    naming_prefix              = "my-app"
    region                     = "us-east-1"
    notification_emails        = ["foo@bar.com"]
-   ec2_instance_ids           = ["i-0abcd1234efgh5678"]
    stop_cron_expression       = "0 18 * * 1-5"
    start_cron_expression      = "0 6 * * 1-5"
    ms_teams_reporting_enabled = true
