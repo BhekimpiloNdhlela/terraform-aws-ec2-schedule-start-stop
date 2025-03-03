@@ -16,7 +16,10 @@ SUCCESS_EMAIL_HEADER = os.environ.get("SUCCESS_EMAIL_HEADER")
 SUCCESS_EMAIL_FOOTER = os.environ.get("SUCCESS_EMAIL_FOOTER")
 MS_TEAMS_REPORTING_ENABLED = os.environ.get("MS_TEAMS_REPORTING_ENABLED", "false").lower() == "true"
 MS_TEAMS_WEBHOOK_URL = os.environ.get("MS_TEAMS_WEBHOOK_URL")
-
+EC2_SCHEDULE_AUTO_START_VALUE = os.environ.get("EC2_SCHEDULE_AUTO_START_VALUE")
+EC2_SCHEDULE_AUTO_STOP_VALUE = os.environ.get("EC2_SCHEDULE_AUTO_STOP_VALUE")
+EC2_SCHEDULE_AUTO_START_KEY = os.environ.get("EC2_SCHEDULE_AUTO_START_KEY")
+EC2_SCHEDULE_AUTO_STOP_KEY = os.environ.get("EC2_SCHEDULE_AUTO_STOP_KEY")
 
 def send_email_notification(subject: str, message: str) -> None:
     """
@@ -166,9 +169,4 @@ def handler(event, context):
             success_message = f"[INFO]: Successfully stopped EC2 instances: {'\n'.join([])}"
             log_and_report_process_results(False, success_message)
     except Exception as e:
-        log_and_report_process_results(True, str(e))
-
-
-
-    # tag_key, tag_value = 'auto-start', 'True'
-    
+        log_and_report_process_results(True, str(e))    

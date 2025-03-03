@@ -77,15 +77,19 @@ resource "aws_lambda_function" "automate_ec2_start_stop" {
 
   environment {
     variables = {
-      SNS_TOPIC_ARN              = aws_sns_topic.automate_ec2_start_stop.arn
-      ERROR_EMAIL_SUBJECT        = var.error_email_subject
-      ERROR_EMAIL_HEADER         = var.error_email_header
-      ERROR_EMAIL_FOOTER         = var.error_email_footer
-      SUCCESS_EMAIL_SUBJECT      = var.success_email_subject
-      SUCCESS_EMAIL_FOOTER       = var.success_email_footer
-      SUCCESS_EMAIL_HEADER       = var.success_email_header
-      MS_TEAMS_REPORTING_ENABLED = var.ms_teams_reporting_enabled
-      MS_TEAMS_WEBHOOK_URL       = var.ms_teams_webhook_url
+      SNS_TOPIC_ARN                 = aws_sns_topic.automate_ec2_start_stop.arn
+      ERROR_EMAIL_SUBJECT           = var.error_email_subject
+      ERROR_EMAIL_HEADER            = var.error_email_header
+      ERROR_EMAIL_FOOTER            = var.error_email_footer
+      SUCCESS_EMAIL_SUBJECT         = var.success_email_subject
+      SUCCESS_EMAIL_FOOTER          = var.success_email_footer
+      SUCCESS_EMAIL_HEADER          = var.success_email_header
+      MS_TEAMS_REPORTING_ENABLED    = var.ms_teams_reporting_enabled
+      MS_TEAMS_WEBHOOK_URL          = var.ms_teams_webhook_url
+      EC2_SCHEDULE_AUTO_START_VALUE = var.schedule_auto_start_value
+      EC2_SCHEDULE_AUTO_STOP_VALUE  = var.schedule_auto_stop_value
+      EC2_SCHEDULE_AUTO_START_KEY   = var.schedule_auto_start_key
+      EC2_SCHEDULE_AUTO_STOP_KEY    = var.schedule_auto_stop_key
     }
   }
 

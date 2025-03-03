@@ -14,4 +14,8 @@ module "terraform-aws-automate-ec2-start-stop" {
   notification_emails        = var.notification_emails
   start_expression           = var.start_expression
   stop_expression            = var.stop_expression
+  schedule_auto_start_key    = var.schedule_auto_start_key
+  schedule_auto_start_value  = var.schedule_auto_start_value
+  schedule_auto_stop_key     = var.schedule_auto_stop_key
+  schedule_auto_stop_value   = var.schedule_auto_stop_value
 }
