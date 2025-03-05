@@ -35,7 +35,7 @@ This solution leverages the following AWS services:
 
 The following is the infrastructure diagram of the solution:
 
-![Project Architecture](./infra-documentation/infra-diagram.png "Architecture Overview")
+![Project Architecture](./../../infra-documentation/infra-diagram.png "Architecture Overview")
 
 ---
 
