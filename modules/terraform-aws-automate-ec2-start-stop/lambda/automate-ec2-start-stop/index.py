@@ -55,10 +55,6 @@ def send_ms_teams_notification(message: str) -> None:
     Returns:
         None
     """
-    if not MS_TEAMS_REPORTING_ENABLED:
-        print("[INFO]: Microsoft Teams reporting is disabled.")
-        return
-
     print("[INFO]: Microsoft Teams reporting is enabled.")
     headers = {"Content-Type": "application/json"}
     payload = {"text": message}
@@ -89,8 +85,14 @@ def log_and_report_process_results(error: bool, message: str) -> None:
         formatted_message = f"{ERROR_EMAIL_HEADER}\n{message}\n{ERROR_EMAIL_FOOTER}" 
     else:
         formatted_message = f"{SUCCESS_EMAIL_HEADER}\n{message}\n{SUCCESS_EMAIL_FOOTER}"
-    send_ms_teams_notification(formatted_message)
+
     send_email_notification(ERROR_EMAIL_SUBJECT if error else SUCCESS_EMAIL_SUBJECT, formatted_message)
+
+    if MS_TEAMS_REPORTING_ENABLED:
+        print("[INFO]: Microsoft Teams reporting is enabled.")
+        send_ms_teams_notification(formatted_message)
+    else:
+        print("[INFO]: Microsoft Teams reporting is disabled.")
 
 def get_ec2_instance_ids_by_schedule_tag(tag_key: str, tag_value: str) -> List[str]:
     """
