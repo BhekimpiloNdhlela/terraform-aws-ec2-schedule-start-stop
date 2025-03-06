@@ -59,6 +59,7 @@ def send_ms_teams_notification(message: str) -> None:
         print("[INFO]: Microsoft Teams reporting is disabled.")
         return
 
+    print("[INFO]: Microsoft Teams reporting is enabled.")
     headers = {"Content-Type": "application/json"}
     payload = {"text": message}
 
