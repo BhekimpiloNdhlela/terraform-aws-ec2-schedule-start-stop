@@ -4,7 +4,7 @@ import json
 from typing import List, Optional, Dict
 import requests
 
-# AWS Clients
+# instantiate AWS Clients
 ec2_client = boto3.client("ec2")
 sns_client = boto3.client("sns")
 
@@ -25,7 +25,7 @@ STOP_TAG_KEY = os.environ.get("EC2_SCHEDULE_AUTO_STOP_KEY")
 
 def send_email_notification(subject: str, message: str) -> None:
     """
-    Sends a notification via SNS.
+    Sends a notification via SNS using an email endpoint.
 
     Args:
         subject (str): The subject of the email notification.
