@@ -29,6 +29,8 @@ override.tf.json
 .terraformrc
 terraform.rc
 
+**/.terraform.lock.hcl
+
 # Ignore layers and the python build folder
 modules/terraform-aws-automate-ec2-start-stop/layer/
 modules/terraform-aws-automate-ec2-start-stop/builds/
