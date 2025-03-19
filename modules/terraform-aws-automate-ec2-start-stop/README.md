@@ -1,64 +1,56 @@
-# Terraform Module: Automate EC2 Start/Stop with Notifications
+# Terraform Module: Automated EC2 Start/Stop with Notifications
 
-This Terraform module automates the start and stop of specified EC2 instances on a defined schedule using AWS EventBridge and Lambda. Notifications are sent via Amazon SNS and optionally reported to Microsoft Teams.
+This Terraform module automates the scheduled start and stop of EC2 instances using AWS EventBridge and Lambda. It also integrates notifications via Amazon SNS and optionally Microsoft Teams.
 
 ## Features
 
-- Automatically start and stop EC2 instances based on cron or rate expressions.
-- Filter EC2 instances using tags to identify which instances should be started or stopped.
-- Send email notifications via SNS in case of errors or successful executions.
-- Optional reporting to Microsoft Teams via a webhook.
-- Configurable for different environments (e.g., `dev`, `test`, `prod`).
+- **Automated EC2 Start/Stop**: Schedule EC2 instance start and stop based on cron or rate expressions.
+- **Tag-based Instance Selection**: Target instances based on specific tags.
+- **Notification System**:
+  - Send email notifications via Amazon SNS for success and failure cases.
+  - Optional Microsoft Teams notifications via a webhook.
+- **Multi-Environment Support**: Works across `dev`, `test`, and `prod` environments.
+- **Secure Webhook Storage**: Microsoft Teams webhook URLs are securely stored in AWS SSM Parameter Store.
 
----
+## Architecture Overview
 
-## Architecture/Infrastructure
-This solution leverages the following AWS services:
+This solution utilizes the following AWS services:
 
-- **AWS SNS**  
-  Simple Notification Service (SNS) is used to send emails to the specified email endpoints. SNS is responsible for reporting errors or notifying the success/failure of the start/stop process.
+- **AWS SNS**: Sends email notifications for success and failures.
+- **AWS EventBridge Rules**:
+  - **Stop Rule**: Triggers Lambda to stop EC2 instances at a scheduled time.
+  - **Start Rule**: Triggers Lambda to start EC2 instances at a scheduled time.
+- **AWS Lambda**: Executes EC2 start/stop operations when triggered by EventBridge.
+- **AWS S3**: Stores external dependencies (e.g., `requests` module for Teams webhook calls).
+- **AWS SSM Parameter Store**: Securely manages Microsoft Teams webhook URLs.
 
-- **AWS EventBridge Rule (STOP)**  
-  This rule is configured to trigger the Lambda function to stop EC2 instances that match the specified tags.
-
-- **AWS EventBridge Rule (START)**  
-  This rule is configured to trigger the Lambda function to start EC2 instances that match the specified tags.
-
-- **AWS Lambda**  
-  The Lambda function is used to start or stop EC2 instances when triggered by an EventBridge rule, based on the defined schedule.
-
-- **AWS S3**  
-  An S3 bucket is used to store an external module (`requests`), which is required for making POST requests to the Microsoft Teams Incoming Webhook endpoint.
-
-- **AWS SSM Parameter Store**  
-  The Microsoft Teams Incoming Webhook URL is securely stored in AWS Systems Manager (SSM) Parameter Store.
-
-The following is the infrastructure diagram of the solution:
+### Infrastructure Diagram
 
 ![Project Architecture](./../../infra-documentation/infra-diagram.png "Architecture Overview")
 
 ---
 
+
 ## Usage
 
 ```hcl
-module "automate_ec2_start_stop" {
+module "ec2_scheduler" {
   source = "github.com/BhekimpiloNdhlela/terraform-aws-ec2-schedule-start-stop.git"
 
   environment                = "prod"
   naming_prefix              = "ec2-auto-start-stop"
   region                     = "eu-west-1"
-  notification_emails        = ["bheki@cloudandthings.io"]
+  notification_emails        = ["foo@bar.com"]
   stop_expression            = "rate(2 minutes)"
   start_expression           = "rate(1 day)"
-  ms_teams_reporting_enabled = true
-  ms_teams_webhook_url       = "https://cloudandthingsza.webhook.office.com/..."
-  error_email_subject        = "Lambda Error Notification [EC2 Start/Stop]"
-  error_email_header         = "Hi 👋🏾,\nThe following error occurred while running the Lambda function:\n"
-  error_email_footer         = "Please check the AWS CloudWatch logs for more details.\nBest regards,\nFooBar Team"
-  success_email_subject      = "Lambda Success Notification [EC2 Start/Stop]"
-  success_email_header       = "Hi 👋🏾,\nThe Lambda function executed successfully, the following EC2 instance(s) were terminated:\n"
-  success_email_footer       = "Please review the AWS CloudWatch logs for detailed execution information.\nBest regards,\nFooBar Team"
+  ms_teams_reporting_enabled = false
+  ms_teams_webhook_url       = "https://foobar.webhook.office.com/..."
+  error_email_subject        = "EC2 Scheduler Error Notification"
+  error_email_header         = "Hi 👋🏾,\nAn error occurred while executing the EC2 scheduler Lambda:\n"
+  error_email_footer         = "Please check AWS CloudWatch logs for details.\nBest,\nFooBar Team"
+  success_email_subject      = "EC2 Scheduler Success Notification"
+  success_email_header       = "Hi 👋🏾,\nThe EC2 scheduler Lambda executed successfully. Instances affected:\n"
+  success_email_footer       = "Check AWS CloudWatch logs for execution details.\nBest,\nFooBar Team"
   schedule_auto_start_key    = "scheduled-auto-start"
   schedule_auto_start_value  = "true"
   schedule_auto_stop_key     = "scheduled-auto-stop"
@@ -70,36 +62,36 @@ module "automate_ec2_start_stop" {
 
 ## Inputs
 
-| Name                         | Type           | Default | Description                                                   |
-| ---------------------------- | -------------- | ------- | ------------------------------------------------------------- |
-| `environment`                | `string`       | `""`    | The environment for deployment (e.g., `dev`, `test`, `prod`). |
-| `naming_prefix`              | `string`       | `""`    | Prefix for naming AWS resources.                              |
-| `region`                     | `string`       | `""`    | AWS region for resource deployment.                           |
-| `notification_emails`        | `list(string)` | `[]`    | List of email addresses to receive notifications.             |
-| `stop_expression`            | `string`       | `""`    | Rate or cron expression for stopping EC2 instances.           |
-| `start_expression`           | `string`       | `""`    | Rate or cron expression for starting EC2 instances.           |
-| `ms_teams_reporting_enabled` | `bool`         | `true`  | Enable or disable MS Teams reporting.                         |
-| `ms_teams_webhook_url`       | `string`       | `""`    | Microsoft Teams webhook URL for reporting.                    |
-| `error_email_subject`        | `string`       | `""`    | Subject for error notification emails.                        |
-| `error_email_header`         | `string`       | `""`    | Header for error notification emails.                         |
-| `error_email_footer`         | `string`       | `""`    | Footer for error notification emails.                         |
-| `success_email_subject`      | `string`       | `""`    | Subject for success notification emails.                      |
-| `success_email_header`       | `string`       | `""`    | Header for success notification emails.                       |
-| `success_email_footer`       | `string`       | `""`    | Footer for success notification emails.                       |
-| `schedule_auto_start_key`    | `string`       | `""`    | The tag key used to identify instances to auto-start.         |
-| `schedule_auto_start_value`  | `string`       | `""`    | The tag value used to identify instances to auto-start.       |
-| `schedule_auto_stop_key`     | `string`       | `""`    | The tag key used to identify instances to auto-stop.          |
-| `schedule_auto_stop_value`   | `string`       | `""`    | The tag value used to identify instances to auto-stop.        |
+| Name                         | Type           | Default | Description                                             |
+| ---------------------------- | -------------- | ------- | ------------------------------------------------------- |
+| `environment`                | `string`       | `""`    | Deployment environment (`dev`, `test`, `prod`).        |
+| `naming_prefix`              | `string`       | `""`    | Prefix for AWS resource names.                         |
+| `region`                     | `string`       | `""`    | AWS region for deployment.                             |
+| `notification_emails`        | `list(string)` | `[]`    | Email recipients for notifications.                    |
+| `stop_expression`            | `string`       | `""`    | Schedule for stopping EC2 instances.                   |
+| `start_expression`           | `string`       | `""`    | Schedule for starting EC2 instances.                   |
+| `ms_teams_reporting_enabled` | `bool`         | `false` | Enable/disable Microsoft Teams reporting.              |
+| `ms_teams_webhook_url`       | `string`       | `""`    | Microsoft Teams webhook URL.                           |
+| `error_email_subject`        | `string`       | `""`    | Subject for error notification emails.                 |
+| `error_email_header`         | `string`       | `""`    | Header for error notification emails.                  |
+| `error_email_footer`         | `string`       | `""`    | Footer for error notification emails.                  |
+| `success_email_subject`      | `string`       | `""`    | Subject for success notification emails.               |
+| `success_email_header`       | `string`       | `""`    | Header for success notification emails.                |
+| `success_email_footer`       | `string`       | `""`    | Footer for success notification emails.                |
+| `schedule_auto_start_key`    | `string`       | `""`    | Tag key for identifying auto-start instances.          |
+| `schedule_auto_start_value`  | `string`       | `""`    | Tag value for identifying auto-start instances.        |
+| `schedule_auto_stop_key`     | `string`       | `""`    | Tag key for identifying auto-stop instances.           |
+| `schedule_auto_stop_value`   | `string`       | `""`    | Tag value for identifying auto-stop instances.         |
 
 ---
 
 ## Outputs
 
-| Name              | Description                              |
-| ----------------- | ---------------------------------------- |
-| `sns_topic_arn`   | ARN of the SNS topic for notifications.  |
-| `lambda_function` | Name of the Lambda function.             |
-| `cloudwatch_logs` | CloudWatch Log Group used by the Lambda. |
+| Name              | Description                                |
+| ----------------- | ------------------------------------------ |
+| `sns_topic_arn`   | ARN of the SNS topic for notifications.    |
+| `lambda_function` | Name of the Lambda function.               |
+| `cloudwatch_logs` | CloudWatch Log Group for Lambda logging.   |
 
 ---
 
@@ -107,30 +99,40 @@ module "automate_ec2_start_stop" {
 
 - Terraform 1.0+
 - AWS Provider 4.0+
-- IAM permissions to create Lambda, EC2, SNS, and CloudWatch resources.
+- IAM permissions for EC2, Lambda, SNS, and CloudWatch.
 
 ---
 
-## Deployment
+## Deployment Steps
 
 1. Clone the repository:
 
    ```bash
    git clone https://github.com/BhekimpiloNdhlela/terraform-aws-ec2-schedule-start-stop.git
-   cd automate-ec2-start-stop
+   cd terraform-aws-ec2-schedule-start-stop
    ```
 
 2. Create a `terraform.tfvars` file with your configuration:
 
    ```hcl
-   environment                = "prod"
-   naming_prefix              = "ec2-auto-start-stop"
-   region                     = "eu-west-1"
-   notification_emails        = ["bheki@cloudandthings.io"]
-   stop_expression            = "rate(2 minutes)"
-   start_expression           = "rate(1 day)"
-   ms_teams_reporting_enabled = true
-   ms_teams_webhook_url       = "https://cloudandthingsza.webhook.office.com/..."
+    environment                = "prod"
+    naming_prefix              = "ec2-auto-start-stop"
+    region                     = "eu-west-1"
+    notification_emails        = ["foo@bar.com"]
+    stop_expression            = "rate(2 minutes)"
+    start_expression           = "rate(1 day)"
+    ms_teams_reporting_enabled = false
+    ms_teams_webhook_url       = "https://foobar.webhook.office.com/webhookb2/..."
+    error_email_subject        = "Lambda Error Notification [EC2 Start/Stop]"
+    error_email_header         = "Hi 👋🏾,\nThe following error occurred while running the Lambda function:\n"
+    error_email_footer         = "Please check the AWS CloudWatch logs for more details.\nBest regards,\nFooBar Team"
+    success_email_subject      = "Lambda Success Notification [EC2 Start/Stop]"
+    success_email_header       = "Hi 👋🏾,\nThe Lambda function executed successfully, the following EC2 instance(s) were terminated:\n"
+    success_email_footer       = "Please review the AWS CloudWatch logs for detailed execution information.\nBest regards,\nFooBar Team"
+    schedule_auto_start_key    = "scheduled-auto-start"
+    schedule_auto_start_value  = "true"
+    schedule_auto_stop_key     = "scheduled-auto-stop"
+    schedule_auto_stop_value   = "true"
    ```
 
 3. Initialize Terraform:
@@ -140,6 +142,7 @@ module "automate_ec2_start_stop" {
    ```
 
 4. Plan and apply:
+
    ```bash
    terraform plan
    terraform apply
@@ -149,7 +152,7 @@ module "automate_ec2_start_stop" {
 
 ## Author
 
-This module is maintained by **Bheki Ndhlela**. Contributions are welcome!
+Maintained by **Bheki Ndhlela**. Contributions are welcome!
 
 ## License
 
