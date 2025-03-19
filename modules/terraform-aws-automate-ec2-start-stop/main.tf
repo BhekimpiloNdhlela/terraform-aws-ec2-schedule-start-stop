@@ -15,7 +15,7 @@ resource "aws_lambda_function" "automate_ec2_start_stop" {
   function_name = "${var.naming_prefix}-lambda-function"
   filename      = data.archive_file.automate_ec2_start_stop.output_path
   role          = aws_iam_role.lambda_execution_role.arn
-  handler       = "index.handler"
+  handler       = "automate-ec2-start-stop.handler"
   runtime       = "python3.10"
   timeout       = 180
   memory_size   = 256
