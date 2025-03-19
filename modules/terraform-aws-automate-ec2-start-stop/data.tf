@@ -15,6 +15,6 @@ data "aws_iam_policy_document" "lambda_assume_role_policy" {
 # Archive the Lambda function code into a zip file
 data "archive_file" "automate_ec2_start_stop" {
   type        = "zip"
-  source_dir  = "${path.module}/lambda/automate-ec2-start-stop"
-  output_path = "${path.module}/builds/lambda/automate-ec2-start-stop.zip"
+  source_dir  = "${path.module}/lambda"
+  output_path = "${path.module}/builds/automate-ec2-start-stop.zip"
 }
