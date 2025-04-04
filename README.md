@@ -22,7 +22,7 @@ This solution utilizes the following AWS services:
   - **Start Rule**: Triggers Lambda to start EC2 instances at a scheduled time.
 - **AWS Lambda**: Executes EC2 start/stop operations when triggered by EventBridge.
 - **AWS S3**: Stores external dependencies (e.g., `requests` module for Teams webhook calls).
-- **AWS SSM Parameter Store**: Securely manages Microsoft Teams webhook URLs.
+- **AWS SSM Parameter Store**: Securely manages Microsoft Teams webhook URLs.[NOT ADDED]
 
 ### Infrastructure Diagram
 
@@ -34,25 +34,24 @@ This solution utilizes the following AWS services:
 ```
 .
 ├── example
-│   ├── main.tf                  # Example usage of the module
-│   ├── terraform.tf             # Terraform configuration file
-│   └── variables.tf             # Variables for the example
+│   ├── main.tf
+│   ├── terraform.tf
+│   ├── terraform.tfvars
+│   └── variables.tf
 ├── infra-documentation
-│   └── infra-diagram.png        # Architecture diagram
-├── modules
-│   └── terraform-aws-automate-ec2-start-stop
-│       ├── lambda
-│       │   └── automate-ec2-start-stop.py  # Python script for Lambda function
-│       ├── README.md         # Documentation for the module
-│       ├── data.tf           # Data sources
-│       ├── iam.tf            # IAM role and policies
-│       ├── locals.tf         # Local variables
-│       ├── main.tf           # Main module configuration
-│       ├── outputs.tf        # Outputs from the module
-│       ├── variables.tf      # Input variables for the module
-│       └── versions.tf       # Required Terraform and provider versions
-├── LICENSE                # License file
-└── README.md              # Project documentation
+│   └── infra-diagram.png
+├── lambda
+│   └── automate-ec2-start-stop.py
+├── LICENSE
+├── README.md
+├── data.tf
+├── iam.tf
+├── locals.tf
+├── main.tf
+├── outputs.tf
+├── package-request-layer.sh
+├── variables.tf
+└── versions.tf
 ```
 
 ## Usage
@@ -84,30 +83,30 @@ module "ec2_scheduler" {
 
 ---
 
-## Inputs
+## Inputs/Variables
 
-| Name                         | Type           | Default | Description                                             |
-| ---------------------------- | -------------- | ------- | ------------------------------------------------------- |
-| `environment`                | `string`       | `""`    | Deployment environment (`dev`, `test`, `prod`).        |
-| `naming_prefix`              | `string`       | `""`    | Prefix for AWS resource names.                         |
-| `region`                     | `string`       | `""`    | AWS region for deployment.                             |
-| `notification_emails`        | `list(string)` | `[]`    | Email recipients for notifications.                    |
-| `stop_expression`            | `string`       | `""`    | Schedule for stopping EC2 instances.                   |
-| `start_expression`           | `string`       | `""`    | Schedule for starting EC2 instances.                   |
-| `ms_teams_reporting_enabled` | `bool`         | `false` | Enable/disable Microsoft Teams reporting.              |
-| `ms_teams_webhook_url`       | `string`       | `""`    | Microsoft Teams webhook URL.                           |
-| `error_email_subject`        | `string`       | `""`    | Subject for error notification emails.                 |
-| `error_email_header`         | `string`       | `""`    | Header for error notification emails.                  |
-| `error_email_footer`         | `string`       | `""`    | Footer for error notification emails.                  |
-| `success_email_subject`      | `string`       | `""`    | Subject for success notification emails.               |
-| `success_email_header`       | `string`       | `""`    | Header for success notification emails.                |
-| `success_email_footer`       | `string`       | `""`    | Footer for success notification emails.                |
-| `schedule_auto_start_key`    | `string`       | `""`    | Tag key for identifying auto-start instances.          |
-| `schedule_auto_start_value`  | `string`       | `""`    | Tag value for identifying auto-start instances.        |
-| `schedule_auto_stop_key`     | `string`       | `""`    | Tag key for identifying auto-stop instances.           |
-| `schedule_auto_stop_value`   | `string`       | `""`    | Tag value for identifying auto-stop instances.         |
-
----
+| Name                         | Type           | Default               | Description                                        |
+|------------------------------|---------------|-----------------------|----------------------------------------------------|
+| `environment`                | `string`      | `""`                  | Deployment environment (`dev`, `test`, `prod`).   |
+| `naming_prefix`              | `string`      | `""`                  | Prefix for AWS resource names.                    |
+| `region`                     | `string`      | `""`                  | AWS region for deployment.                        |
+| `notification_emails`        | `list(string)`| `[]`                  | Email recipients for notifications.               |
+| `stop_expression`            | `string`      | `""`                  | Schedule for stopping EC2 instances.              |
+| `start_expression`           | `string`      | `""`                  | Schedule for starting EC2 instances.              |
+| `schedule_auto_start_key`    | `string`      | `"scheduled-auto-start"` | Tag key for identifying auto-start instances.   |
+| `schedule_auto_start_value`  | `string`      | `"true"`              | Tag value for identifying auto-start instances.   |
+| `schedule_auto_stop_key`     | `string`      | `"scheduled-auto-stop"` | Tag key for identifying auto-stop instances.   |
+| `schedule_auto_stop_value`   | `string`      | `"true"`              | Tag value for identifying auto-stop instances.   |
+| `ms_teams_reporting_enabled` | `bool`        | `false`                | Enable/disable Microsoft Teams reporting.        |
+| `ms_teams_webhook_url`       | `string`      | `""`                  | Microsoft Teams webhook URL.                      |
+| `error_email_subject`        | `string`      | `""`                  | Subject for error notification emails.           |
+| `error_email_header`         | `string`      | `""`                  | Header for error notification emails.            |
+| `error_email_footer`         | `string`      | `""`                  | Footer for error notification emails.            |
+| `success_email_subject`      | `string`      | `""`                  | Subject for success notification emails.         |
+| `success_email_header`       | `string`      | `""`                  | Header for success notification emails.          |
+| `success_email_footer`       | `string`      | `""`                  | Footer for success notification emails.          |
+| `lambda_timeout`             | `number`      | `30`                   | Timeout for the Lambda function in seconds.      |
+| `lambda_memory_size`         | `number`      | `128`                  | Memory size for the Lambda function in MB.       |
 
 ## Outputs
 
@@ -124,6 +123,8 @@ module "ec2_scheduler" {
 - Terraform 1.0+
 - AWS Provider 4.0+
 - IAM permissions for EC2, Lambda, SNS, and CloudWatch.
+- AWS Account & Access Keys: Ensure you have an active AWS account with programmatic access configured via access keys.
+
 
 ---
 
@@ -159,13 +160,26 @@ module "ec2_scheduler" {
     schedule_auto_stop_value   = "true"
    ```
 
-3. Initialize Terraform:
+Packaging the Request Layer,  Before running Terraform, you need to package the `requests` library as a Lambda layer. Use the following steps:
+
+3. Run the provided script to package the `requests` library:
+   ```bash
+   sh package-request-layer.sh
+   ```
+
+4. Ensure that `requests.zip` is created successfully in the `layer/` directory.
+   ```
+   ls layer/
+   ```
+
+
+5. Initialize Terraform:
 
    ```bash
    terraform init
    ```
 
-4. Plan and apply:
+6. Plan and apply:
 
    ```bash
    terraform plan
@@ -174,11 +188,12 @@ module "ec2_scheduler" {
 
 ---
 
-## Author
-
-Maintained by **Bheki Ndhlela**. Contributions are welcome!
 
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+
+## Author
+Maintained by **Bheki Ndhlela**. Contributions are welcome!
 

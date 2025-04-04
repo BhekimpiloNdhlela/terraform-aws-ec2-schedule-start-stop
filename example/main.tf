@@ -1,5 +1,5 @@
 module "terraform-aws-automate-ec2-start-stop" {
-  source                     = "./../modules/terraform-aws-automate-ec2-start-stop"
+  source                     = "./../"
   environment                = var.environment
   error_email_footer         = var.error_email_footer
   error_email_header         = var.error_email_header
@@ -18,4 +18,6 @@ module "terraform-aws-automate-ec2-start-stop" {
   schedule_auto_start_value  = var.schedule_auto_start_value
   schedule_auto_stop_key     = var.schedule_auto_stop_key
   schedule_auto_stop_value   = var.schedule_auto_stop_value
+  lambda_memory_size         = var.lambda_memory_size
+  lambda_timeout             = var.lambda_timeout
 }

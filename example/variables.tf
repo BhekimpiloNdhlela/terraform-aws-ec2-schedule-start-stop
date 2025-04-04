@@ -57,7 +57,6 @@ variable "start_expression" {
     error_message = "The 'start_cron_expression' variable must not be empty."
   }
 }
-
 variable "schedule_auto_start_key" {
   type        = string
   description = "The tag key used to identify EC2 instances for auto-start."
@@ -181,5 +180,28 @@ variable "success_email_footer" {
   validation {
     condition     = length(var.success_email_footer) > 0
     error_message = "The 'success_email_footer' variable must not be empty."
+  }
+}
+
+variable "lambda_timeout" {
+  type        = number
+  description = "The timeout for the Lambda function in seconds."
+  default     = 30
+
+  validation {
+    condition     = var.lambda_timeout > 0
+    error_message = "The 'lambda_timeout' variable must be greater than 0."
+  }
+
+}
+
+variable "lambda_memory_size" {
+  type        = number
+  description = "The memory size for the Lambda function in MB."
+  default     = 128
+
+  validation {
+    condition     = var.lambda_memory_size > 0
+    error_message = "The 'lambda_memory_size' variable must be greater than 0."
   }
 }

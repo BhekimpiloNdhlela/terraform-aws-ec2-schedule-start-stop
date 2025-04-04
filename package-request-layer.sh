@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # define the target directry
-LAYER_DIR="../modules/terraform-aws-automate-ec2-start-stop/layer"
+LAYER_DIR="layer"
 ZIP_FILE="$LAYER_DIR/requests.zip"
 
 # create the layer directory if it doesnt exist
