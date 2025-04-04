@@ -78,6 +78,8 @@ module "ec2_scheduler" {
   schedule_auto_start_value  = "true"
   schedule_auto_stop_key     = "scheduled-auto-stop"
   schedule_auto_stop_value   = "true"
+  lambda_timeout             = 180
+  lambda_memory_size         = 128     
 }
 ```
 
@@ -137,49 +139,26 @@ module "ec2_scheduler" {
    cd terraform-aws-ec2-schedule-start-stop
    ```
 
-2. Create a `terraform.tfvars` file with your configuration:
-
-   ```hcl
-    environment                = "prod"
-    naming_prefix              = "ec2-auto-start-stop"
-    region                     = "eu-west-1"
-    notification_emails        = ["foo@bar.com"]
-    stop_expression            = "rate(2 minutes)"
-    start_expression           = "rate(1 day)"
-    ms_teams_reporting_enabled = false
-    ms_teams_webhook_url       = "https://foobar.webhook.office.com/webhookb2/..."
-    error_email_subject        = "Lambda Error Notification [EC2 Start/Stop]"
-    error_email_header         = "Hi 👋🏾,\nThe following error occurred while running the Lambda function:\n"
-    error_email_footer         = "Please check the AWS CloudWatch logs for more details.\nBest regards,\nFooBar Team"
-    success_email_subject      = "Lambda Success Notification [EC2 Start/Stop]"
-    success_email_header       = "Hi 👋🏾,\nThe Lambda function executed successfully, the following EC2 instance(s) were terminated:\n"
-    success_email_footer       = "Please review the AWS CloudWatch logs for detailed execution information.\nBest regards,\nFooBar Team"
-    schedule_auto_start_key    = "scheduled-auto-start"
-    schedule_auto_start_value  = "true"
-    schedule_auto_stop_key     = "scheduled-auto-stop"
-    schedule_auto_stop_value   = "true"
-   ```
-
 Packaging the Request Layer,  Before running Terraform, you need to package the `requests` library as a Lambda layer. Use the following steps:
 
-3. Run the provided script to package the `requests` library:
+2. Run the provided script to package the `requests` library:
    ```bash
    sh package-request-layer.sh
    ```
 
-4. Ensure that `requests.zip` is created successfully in the `layer/` directory.
+3. Ensure that `requests.zip` is created successfully in the `layer/` directory.
    ```
    ls layer/
    ```
 
 
-5. Initialize Terraform:
+4. Initialize Terraform:
 
    ```bash
    terraform init
    ```
 
-6. Plan and apply:
+5. Plan and apply:
 
    ```bash
    terraform plan
