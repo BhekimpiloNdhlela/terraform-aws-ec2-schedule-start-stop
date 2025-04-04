@@ -12,14 +12,14 @@ resource "aws_iam_role_policy_attachment" "lambda_execution_policy_attachment" {
 
 # Reference the Lambda role in the Lambda function resource
 resource "aws_lambda_function" "automate_ec2_start_stop" {
-  function_name = "${var.naming_prefix}-lambda-function"
-  filename      = data.archive_file.automate_ec2_start_stop.output_path
-  role          = aws_iam_role.lambda_execution_role.arn
-  handler       = "automate-ec2-start-stop.handler"
-  runtime       = "python3.10"
-  timeout       = 180
-  memory_size   = 256
-
+  function_name    = "${var.naming_prefix}-lambda-function"
+  description      = "The lambda function to automate EC2 start and stop operations."
+  filename         = data.archive_file.automate_ec2_start_stop.output_path
+  role             = aws_iam_role.lambda_execution_role.arn
+  handler          = "automate-ec2-start-stop.handler"
+  runtime          = "python3.10"
+  timeout          = var.lambda_timeout
+  memory_size      = var.lambda_memory_size
   source_code_hash = data.archive_file.automate_ec2_start_stop.output_base64sha256
   depends_on       = [aws_cloudwatch_log_group.automate_ec2_start_stop]
   layers           = [aws_lambda_layer_version.automate_ec2_start_stop.arn]
