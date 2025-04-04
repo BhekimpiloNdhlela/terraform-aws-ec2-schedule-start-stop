@@ -1,5 +1,5 @@
 module "terraform-aws-automate-ec2-start-stop" {
-  source                     = "./../modules/terraform-aws-automate-ec2-start-stop"
+  source                     = "./../"
   environment                = var.environment
   error_email_footer         = var.error_email_footer
   error_email_header         = var.error_email_header

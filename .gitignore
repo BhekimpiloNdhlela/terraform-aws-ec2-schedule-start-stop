@@ -58,3 +58,5 @@ pip-wheel-metadata/
 .venv/
 env/
 venv/
+builds/
+layer/
